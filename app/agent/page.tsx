@@ -1,0 +1,51 @@
+import { AgentChat } from "@/components/agent/AgentChat";
+import { Metadata } from "next";
+import { Sparkles } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "AI Agent — Baseora",
+  description: "AI-powered DeFi assistant for Base",
+};
+
+export default function AgentPage() {
+  return (
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+      {/* Background */}
+      <div
+        className="fixed top-1/3 right-1/4 w-[400px] h-[400px] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(0,82,255,0.05) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Header */}
+      <div className="border-b border-border bg-bg-primary/80 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-base flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="font-bold text-text-primary">Baseora AI Agent</h1>
+              <p className="text-xs text-text-muted">
+                DeFi assistant · Answers in English · Understands Turkish
+              </p>
+            </div>
+            <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-success/30 bg-success/10">
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              <span className="text-xs text-success font-medium">Online</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat area */}
+      <div className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-0 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0" style={{ height: "calc(100vh - 10rem)" }}>
+          <AgentChat />
+        </div>
+      </div>
+    </div>
+  );
+}

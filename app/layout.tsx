@@ -1,0 +1,48 @@
+import type { Metadata } from "next";
+import { Providers } from "./providers";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import FlowFieldBackground from "@/components/ui/FlowFieldBackground";
+import BlockchainBackground from "@/components/ui/BlockchainBackground";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Baseora — DEX Aggregator on Base",
+  description:
+    "Get the best swap prices across Uniswap V3, Aerodrome, SushiSwap and more on Base. Powered by 0x Protocol with AI-assisted trading.",
+  keywords: ["DEX", "Base", "Swap", "Aggregator", "DeFi", "Uniswap", "Aerodrome", "Baseora"],
+  openGraph: {
+    title: "Baseora DEX Aggregator",
+    description: "Best swap prices on Base. Powered by 0x + AI.",
+    type: "website",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-screen flex flex-col bg-bg-primary">
+        <Providers>
+          <BlockchainBackground />
+          <Navbar />
+          <main className="flex-1 pt-16" style={{ position: "relative", zIndex: 1 }}>
+            {children}
+          </main>
+          <Footer />
+        </Providers>
+      </body>
+    </html>
+  );
+}

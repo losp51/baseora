@@ -1,0 +1,205 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, X, ChevronDown } from "lucide-react";
+import { TokenLogo } from "@/components/ui/TokenLogo";
+import { POPULAR_TOKENS, BASE_TOKENS } from "@/lib/tokens";
+import type { Token } from "@/types/token";
+import { cn } from "@/lib/utils";
+
+interface TokenSelectorProps {
+  value?: Token;
+  onChange: (token: Token) => void;
+  excludeToken?: Token;
+  balance?: string;
+  className?: string;
+}
+
+export function TokenSelector({
+  value,
+  onChange,
+  excludeToken,
+  balance,
+  className,
+}: TokenSelectorProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [tokens, setTokens] = useState<Token[]>(Object.values(BASE_TOKENS));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchTokens = async () => {
+      try {
+        const res = await fetch(`/api/tokens${query ? `?q=${query}` : ""}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTokens(data.tokens);
+        }
+      } catch {
+        setTokens(Object.values(BASE_TOKENS));
+      }
+    };
+
+    const timer = setTimeout(fetchTokens, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const filtered = tokens.filter(
+    (t) =>
+      t.address.toLowerCase() !==
+      excludeToken?.address?.toLowerCase()
+  );
+
+  const popular = POPULAR_TOKENS.filter(
+    (t) =>
+      t.address.toLowerCase() !== excludeToken?.address?.toLowerCase()
+  );
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-bg-tertiary hover:border-border-hover transition-all",
+          className
+        )}
+      >
+        {value ? (
+          <>
+            <TokenLogo
+              symbol={value.symbol}
+              logoURI={value.logoURI}
+              size={24}
+            />
+            <span className="font-semibold text-text-primary">{value.symbol}</span>
+          </>
+        ) : (
+          <span className="font-semibold text-text-secondary">Select token</span>
+        )}
+        <ChevronDown className="w-4 h-4 text-text-muted ml-1" />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setIsOpen(false)}
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="relative w-full max-w-md glass-card overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h2 className="font-semibold text-text-primary">Select Token</h2>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-bg-tertiary transition-all"
+                >
+                  <X className="w-4 h-4 text-text-secondary" />
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="p-4 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Search name or paste address"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="input-base w-full pl-9 pr-4 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Popular tokens */}
+              {!query && (
+                <div className="p-4 border-b border-border">
+                  <p className="text-xs text-text-muted mb-3 font-medium uppercase tracking-wide">
+                    Popular
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {popular.map((token) => (
+                      <button
+                        key={token.address}
+                        onClick={() => {
+                          onChange(token);
+                          setIsOpen(false);
+                          setQuery("");
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-bg-tertiary hover:border-base-blue/50 hover:bg-base-blue/10 transition-all text-sm"
+                      >
+                        <TokenLogo symbol={token.symbol} logoURI={token.logoURI} size={16} />
+                        <span className="font-medium">{token.symbol}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Token list */}
+              <div className="overflow-y-auto max-h-64">
+                {filtered.length === 0 ? (
+                  <div className="p-8 text-center text-text-muted text-sm">
+                    No tokens found
+                  </div>
+                ) : (
+                  filtered.slice(0, 50).map((token) => (
+                    <button
+                      key={token.address}
+                      onClick={() => {
+                        onChange(token);
+                        setIsOpen(false);
+                        setQuery("");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-secondary transition-all group"
+                    >
+                      <TokenLogo
+                        symbol={token.symbol}
+                        logoURI={token.logoURI}
+                        size={36}
+                      />
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold text-text-primary group-hover:text-white">
+                          {token.symbol}
+                        </div>
+                        <div className="text-xs text-text-muted truncate max-w-[200px]">
+                          {token.name}
+                        </div>
+                      </div>
+                      {balance && (
+                        <div className="text-sm text-text-secondary font-mono">
+                          {balance}
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
