@@ -84,7 +84,7 @@ export function TokenChart({ sellToken, buyToken }: Props) {
   const lastPt  = hovered ?? (data.length ? { time: "", price: data[data.length - 1].price } : null);
 
   return (
-    <div className="glass-card p-4 flex flex-col" style={{ height: "100%", minHeight: 280 }}>
+    <div className="glass-card p-4 flex flex-col" style={{ height: "100%", minHeight: 240 }}>
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between mb-3 gap-2">
@@ -143,7 +143,7 @@ export function TokenChart({ sellToken, buyToken }: Props) {
       </div>
 
       {/* ── Chart ── */}
-      <div className="flex-1" style={{ minHeight: 150 }}>
+      <div className="flex-1" style={{ minHeight: 120 }}>
         <AnimatePresence mode="wait">
           {loading && data.length === 0 ? (
             <motion.div key="loading"

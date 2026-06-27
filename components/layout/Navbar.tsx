@@ -71,10 +71,10 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             <NetworkBadge className="hidden sm:flex" />
 
-            {/* Theme toggle */}
+            {/* Theme toggle — hidden on mobile */}
             <button
               onClick={() => setTheme(isLight ? "dark" : "light")}
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-bg-secondary border border-border"
+              className="hidden sm:flex w-8 h-8 rounded-lg items-center justify-center transition-all hover:bg-bg-secondary border border-border"
               title={isLight ? "Switch to dark mode" : "Switch to light mode"}
               style={{ borderColor: "var(--border)" }}
             >
@@ -128,8 +128,15 @@ export function Navbar() {
                   </Link>
                 );
               })}
-              <div className="pt-2 pb-1">
+              <div className="pt-2 pb-1 flex items-center gap-3">
                 <NetworkBadge />
+                <button
+                  onClick={() => setTheme(isLight ? "dark" : "light")}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-all"
+                >
+                  {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  {isLight ? "Dark mode" : "Light mode"}
+                </button>
               </div>
             </div>
           </motion.div>
