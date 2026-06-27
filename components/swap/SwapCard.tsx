@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpDown, Loader2, CheckCircle2, ExternalLink, Zap, FlaskConical } from "lucide-react";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
@@ -16,25 +15,31 @@ import { ConnectButton }    from "@/components/ui/ConnectButton";
 import { useSwapQuote }     from "@/hooks/useSwapQuote";
 import { useTokenBalance }  from "@/hooks/useTokenBalance";
 import { useUserPoints }    from "@/hooks/useUserPoints";
-import { BASE_TOKENS, formatTokenAmount } from "@/lib/tokens";
-import { calculatePriceImpact }           from "@/lib/0x";
+import { BASE_TOKENS } from "@/lib/tokens";import { calculatePriceImpact }           from "@/lib/0x";
 import { calculateSwapXP }               from "@/lib/points";
 import { formatUSD }                      from "@/lib/utils";
 import type { Token } from "@/types/token";
 
-export function SwapCard() {
+interface SwapCardProps {
+  onTokensChange?: (sell: Token, buy: Token) => void;
+}
+
+export function SwapCard({ onTokensChange }: SwapCardProps) {
   const { address, isConnected } = useAccount();
   const publicClient             = usePublicClient();
   const { data: walletClient }   = useWalletClient();
   const { awardXP }              = useUserPoints();
 
-  const [sellToken,  setSellToken]  = useState<Token>(BASE_TOKENS.ETH);
-  const [buyToken,   setBuyToken]   = useState<Token>(BASE_TOKENS.USDC);
+  const [sellToken,  setSellTokenState]  = useState<Token>(BASE_TOKENS.ETH);
+  const [buyToken,   setBuyTokenState]   = useState<Token>(BASE_TOKENS.USDC);
   const [sellAmount, setSellAmount] = useState("");
   const [slippage,   setSlippage]   = useState(0.5);
   const [deadline,   setDeadline]   = useState(20);
   const [isSwapping, setIsSwapping] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+
+  const setSellToken = (t: Token) => { setSellTokenState(t); onTokensChange?.(t, buyToken); };
+  const setBuyToken  = (t: Token) => { setBuyTokenState(t);  onTokensChange?.(sellToken, t); };
 
   /* ── sell amount in raw units ── */
   const sellAmountRaw =
@@ -45,13 +50,14 @@ export function SwapCard() {
         })()
       : "0";
 
-  const { quote, isLoading: quoteLoading, error: quoteError, routes } = useSwapQuote({
+  const { quote, isLoading: quoteLoading, error: quoteError, dexQuotes, selectedDex, setSelectedDex, effectiveBuyAmount } = useSwapQuote({
     sellToken:    sellToken?.address,
     buyToken:     buyToken?.address,
     sellAmount:   sellAmountRaw,
     takerAddress: address,
     slippageBps:  Math.round(slippage * 100),
     enabled:      !!sellAmount && parseFloat(sellAmount) > 0,
+    buyDecimals:  buyToken?.decimals ?? 18,
   });
 
   const isMock = !!(quote as unknown as Record<string, unknown>)?.__isMock;
@@ -61,9 +67,7 @@ export function SwapCard() {
     useTokenBalance(sellToken?.address, address);
 
   /* ── derived values ── */
-  const buyAmount = quote?.buyAmount
-    ? formatTokenAmount(quote.buyAmount, buyToken?.decimals ?? 18)
-    : "";
+  const buyAmount = effectiveBuyAmount;
 
   /* USD estimates from CoinGecko-derived rates */
   const sellRate    = parseFloat(quote?.sellTokenToEthRate || "0");
@@ -82,9 +86,10 @@ export function SwapCard() {
   /* ── handlers ── */
   const handleSwapTokens = () => {
     const prev = sellToken;
-    setSellToken(buyToken);
-    setBuyToken(prev);
+    setSellTokenState(buyToken);
+    setBuyTokenState(prev);
     setSellAmount(buyAmount || "");
+    onTokensChange?.(buyToken, prev);
   };
 
   const handleMaxClick = () => {
@@ -198,7 +203,7 @@ export function SwapCard() {
                 {sellBalanceFormatted} {sellToken?.symbol}
               </span>
               <button onClick={handleMaxClick}
-                      className="text-xs text-base-blue hover:text-base-blue-light font-semibold">
+                      className="text-xs text-base-blue hover:text-base-blue-light font-semibold px-2 py-1 rounded-lg min-h-[32px]">
                 MAX
               </button>
             </div>
@@ -222,7 +227,7 @@ export function SwapCard() {
       {/* Swap arrow */}
       <div className="flex justify-center -my-1 z-10 relative">
         <button onClick={handleSwapTokens}
-                className="w-8 h-8 rounded-xl border-2 border-bg-primary bg-bg-secondary
+                className="w-10 h-10 rounded-xl border-2 border-bg-primary bg-bg-secondary
                            hover:bg-bg-tertiary hover:border-base-blue/50
                            flex items-center justify-center transition-all group">
           <ArrowUpDown className="w-4 h-4 text-text-muted group-hover:text-base-blue transition-colors" />
@@ -248,12 +253,24 @@ export function SwapCard() {
         )}
       </div>
 
-      {/* ── Route + details ── */}
-      <AnimatePresence>
-        {(routes.length > 0 || quoteLoading) && sellAmount && parseFloat(sellAmount) > 0 && (
-          <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:"auto" }}
-                      exit={{ opacity:0, height:0 }} className="mt-2 space-y-2">
-            <RouteDisplay routes={routes} isLoading={quoteLoading} />
+      {/* ── DEX quotes + details ── */}
+      <div
+        className="mt-2 overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
+        style={{
+          maxHeight: (dexQuotes.length > 0 || quoteLoading) && sellAmount && parseFloat(sellAmount) > 0
+            ? "400px" : "0px",
+          opacity: (dexQuotes.length > 0 || quoteLoading) && sellAmount && parseFloat(sellAmount) > 0
+            ? 1 : 0,
+        }}
+      >
+        <div className="space-y-2 pb-1">
+            <RouteDisplay
+              dexQuotes={dexQuotes}
+              selectedDex={selectedDex}
+              onSelect={setSelectedDex}
+              buySymbol={buyToken?.symbol ?? ""}
+              isLoading={quoteLoading}
+            />
 
             {exchangeRate > 0 && (
               <div className="flex items-center justify-between px-3 py-2 rounded-lg
@@ -267,14 +284,6 @@ export function SwapCard() {
 
             {priceImpact > 0 && <PriceImpact impact={priceImpact} />}
 
-            {quote?.estimatedGas && (
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg
-                              bg-bg-secondary/50 text-xs text-text-muted">
-                <span>Estimated Gas</span>
-                <span className="font-mono">~{(parseInt(quote.estimatedGas) / 1e6).toFixed(4)} GWEI</span>
-              </div>
-            )}
-
             {isMock && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg
                               bg-warning/8 border border-warning/20 text-xs text-warning">
@@ -282,9 +291,8 @@ export function SwapCard() {
                 Demo prices via CoinGecko. Add 0x API key for live quotes & execution.
               </div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+      </div>
 
       {/* Error */}
       {quoteError && sellAmount && parseFloat(sellAmount) > 0 && (

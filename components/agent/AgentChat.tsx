@@ -57,7 +57,7 @@ export function AgentChat() {
               Your DeFi assistant for the Base ecosystem.
             </p>
             <p className="text-text-muted text-xs mb-6">
-              Ask in English or Turkish — always answers in English.
+              Ask anything about swaps, tokens, and DeFi on Base.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
@@ -65,9 +65,9 @@ export function AgentChat() {
                 <button
                   key={i}
                   onClick={() => fillSuggestion(s.text)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl border border-border
                              bg-bg-secondary hover:border-base-blue/40 hover:bg-base-blue/5
-                             text-sm text-left transition-all group"
+                             text-sm text-left transition-all group min-h-[52px]"
                 >
                   <span className="text-base flex-shrink-0">{s.icon}</span>
                   <span className="text-text-secondary group-hover:text-text-primary transition-colors text-xs">
@@ -147,7 +147,7 @@ export function AgentChat() {
             ref={inputRef}
             value={input}
             onChange={handleInputChange}
-            placeholder="Ask about swaps, tokens, gas, DeFi strategies… (EN or TR)"
+            placeholder="Ask about swaps, tokens, gas, DeFi strategies…"
             className="input-base flex-1 px-4 py-3 text-sm"
             disabled={isLoading}
           />

@@ -72,7 +72,7 @@ export default function StatsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           {
             label: "Total Volume (7d)",
@@ -121,7 +121,7 @@ export default function StatsPage() {
                 {stat.change}
               </span>
             </div>
-            <div className="text-xl font-bold font-mono text-text-primary">
+            <div className="text-lg sm:text-xl font-bold font-mono text-text-primary">
               {stat.value}
             </div>
             <div className="text-xs text-text-muted mt-0.5">{stat.label}</div>
@@ -211,6 +211,9 @@ export default function StatsPage() {
                   borderRadius: 8,
                   color: "#fff",
                 }}
+                itemStyle={{ color: "#fff" }}
+                labelStyle={{ color: "#8B8FA8" }}
+                formatter={(value: number, name: string) => [`${value}%`, name]}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -233,37 +236,24 @@ export default function StatsPage() {
         {/* Top pairs */}
         <div className="lg:col-span-3 glass-card p-4">
           <h2 className="font-semibold mb-4">Top Trading Pairs</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 px-4">
+            <table className="w-full min-w-[400px]">
               <thead>
                 <tr className="text-left">
-                  {["Pair", "Volume (24h)", "Trades", "Change"].map((h) => (
-                    <th
-                      key={h}
-                      className="pb-3 text-xs font-medium text-text-muted uppercase tracking-wide"
-                    >
+                  {["Pair", "Volume", "Trades", "Change"].map((h) => (
+                    <th key={h} className="pb-3 text-xs font-medium text-text-muted uppercase tracking-wide">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="space-y-2">
+              <tbody>
                 {TOP_PAIRS.map((pair) => (
                   <tr key={pair.pair} className="border-t border-border">
-                    <td className="py-3 font-semibold text-sm">{pair.pair}</td>
-                    <td className="py-3 font-mono text-sm text-text-secondary">
-                      {pair.volume}
-                    </td>
-                    <td className="py-3 font-mono text-sm text-text-secondary">
-                      {pair.trades.toLocaleString()}
-                    </td>
-                    <td
-                      className={`py-3 font-semibold text-sm font-mono ${
-                        pair.change.startsWith("+")
-                          ? "text-success"
-                          : "text-error"
-                      }`}
-                    >
+                    <td className="py-2.5 font-semibold text-sm">{pair.pair}</td>
+                    <td className="py-2.5 font-mono text-sm text-text-secondary">{pair.volume}</td>
+                    <td className="py-2.5 font-mono text-sm text-text-secondary">{pair.trades.toLocaleString()}</td>
+                    <td className={`py-2.5 font-semibold text-sm font-mono ${pair.change.startsWith("+") ? "text-success" : "text-error"}`}>
                       {pair.change}
                     </td>
                   </tr>

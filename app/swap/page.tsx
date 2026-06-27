@@ -1,38 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Zap, Target, Layers } from "lucide-react";
+import { Zap, Target } from "lucide-react";
 import { SwapCard }       from "@/components/swap/SwapCard";
 import { LimitOrderCard } from "@/components/swap/LimitOrderCard";
-import { MultiSwapCard }  from "@/components/swap/MultiSwapCard";
+import { TokenChart }     from "@/components/swap/TokenChart";
+import { BASE_TOKENS }    from "@/lib/tokens";
 import { cn } from "@/lib/utils";
+import type { Token } from "@/types/token";
 
 const TABS = [
-  { id: "swap",    label: "Swap",        icon: Zap,    desc: "Best price across DEXs" },
-  { id: "limit",   label: "Limit Order", icon: Target, desc: "Auto-execute at target price" },
-  { id: "multi",   label: "Multi-Swap",  icon: Layers, desc: "Swap multiple pairs at once" },
+  { id: "swap",  label: "Swap",        icon: Zap,    desc: "Best price across DEXs" },
+  { id: "limit", label: "Limit Order", icon: Target, desc: "Auto-execute at target price" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
 
-/* card width per tab — multi-swap needs more room */
-const CARD_WIDTH: Record<TabId, string> = {
-  swap:  "440px",
-  limit: "440px",
-  multi: "540px",
-};
-
 export default function SwapPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("swap");
-  const maxW = CARD_WIDTH[activeTab];
+  const [activeTab,  setActiveTab]  = useState<TabId>("swap");
+  const [sellToken,  setSellToken]  = useState<Token>(BASE_TOKENS.ETH);
+  const [buyToken,   setBuyToken]   = useState<Token>(BASE_TOKENS.USDC);
+  const leftRef  = useRef<HTMLDivElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
+
+  // Sync chart height to left card height
+  useEffect(() => {
+    if (!leftRef.current || !rightRef.current) return;
+    const sync = () => {
+      const h = leftRef.current?.offsetHeight;
+      if (h && rightRef.current) {
+        rightRef.current.style.height = `${h}px`;
+      }
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    if (leftRef.current) ro.observe(leftRef.current);
+    return () => ro.disconnect();
+  }, [activeTab]);
 
   return (
     <div
-      className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center py-8 px-4"
-      style={{ position: "relative", zIndex: 1 }}
+      className="px-3 sm:px-6 lg:px-8 py-6 sm:py-8"
+      style={{ position: "relative", zIndex: 1, minHeight: "calc(100dvh - 4rem)" }}
     >
-      {/* Background glow overlay */}
+      {/* Background glow */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -45,83 +57,88 @@ export default function SwapPage() {
         }}
       />
 
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-text-primary mb-1.5">
-          Best prices, <span className="gradient-text">always.</span>
-        </h1>
-        <p className="text-text-secondary text-sm">
-          Aggregating Uniswap V3, Aerodrome, SushiSwap and more on Base.
-        </p>
-      </div>
+      {/* Main layout */}
+      <div className="relative z-10 max-w-6xl mx-auto">
 
-      {/* Wrapper — everything shares the same max-width */}
-      <motion.div
-        animate={{ maxWidth: maxW }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-full"
-      >
-        {/* Tab switcher */}
-        <div className="flex gap-1 p-1 rounded-2xl border border-border bg-bg-secondary mb-2">
-          {TABS.map(tab => {
-            const Icon     = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "relative flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl",
-                  "text-sm font-medium transition-all",
-                  isActive
-                    ? "text-white"
-                    : "text-text-secondary hover:text-text-primary"
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="tab-bg"
-                    className="absolute inset-0 rounded-xl bg-gradient-base"
-                    transition={{ type: "spring", duration: 0.4 }}
-                  />
-                )}
-                <Icon className={cn("w-3.5 h-3.5 relative z-10 flex-shrink-0", isActive ? "text-white" : "")} />
-                <span className="relative z-10">{tab.label}</span>
-              </button>
-            );
-          })}
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-1">
+            Best prices, <span className="gradient-text">always.</span>
+          </h1>
+          <p className="text-text-secondary text-xs sm:text-sm">
+            Aggregating Uniswap V3, Aerodrome, SushiSwap and more on Base.
+          </p>
         </div>
 
-        {/* Tab description */}
-        <p className="text-text-muted text-xs mb-3 text-center">
-          {TABS.find(t => t.id === activeTab)?.desc}
-        </p>
+        {/* Two-column grid — equal proportions, same height */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
-        {/* Card content — fills the wrapper width */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}
-        >
-          {activeTab === "swap"  && <SwapCard />}
-          {activeTab === "limit" && <LimitOrderCard />}
-          {activeTab === "multi" && <MultiSwapCard />}
-        </motion.div>
-      </motion.div>
+          {/* ── Left: Swap card ── */}
+          <div className="w-full" ref={leftRef}>
+            {/* Tab switcher */}
+            <div className="flex gap-1 p-1 rounded-2xl border border-border bg-bg-secondary mb-2">
+              {TABS.map(tab => {
+                const Icon     = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "relative flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl",
+                      "text-sm font-medium transition-all min-h-[44px]",
+                      isActive ? "text-white" : "text-text-secondary hover:text-text-primary"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="tab-bg"
+                        className="absolute inset-0 rounded-xl bg-gradient-base"
+                        transition={{ type: "spring", duration: 0.4 }}
+                      />
+                    )}
+                    <Icon className={cn("w-3.5 h-3.5 relative z-10 flex-shrink-0", isActive ? "text-white" : "")} />
+                    <span className="relative z-10">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-      {/* Stats */}
-      <div className="mt-6 flex items-center gap-8 text-center">
-        {[
-          { label: "DEX Sources", value: "10+" },
-          { label: "Chain",       value: "Base" },
-          { label: "Aggregator",  value: "0x v2" },
-        ].map(stat => (
-          <div key={stat.label}>
-            <div className="text-base font-bold gradient-text">{stat.value}</div>
-            <div className="text-xs text-text-muted">{stat.label}</div>
+            <p className="text-text-muted text-xs mb-3 text-center">
+              {activeTab === "swap" ? "Best price across DEXs" : "Auto-execute at target price"}
+            </p>
+
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              {activeTab === "swap" && (
+                <SwapCard
+                  onTokensChange={(sell, buy) => {
+                    setSellToken(sell);
+                    setBuyToken(buy);
+                  }}
+                />
+              )}
+              {activeTab === "limit" && <LimitOrderCard />}
+            </motion.div>
           </div>
-        ))}
+
+          {/* ── Right: Token chart — desktop always, mobile below card ── */}
+          <motion.div
+            key={`chart-${activeTab}-${sellToken.address}-${buyToken.address}`}
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.25 }}
+            className="w-full overflow-hidden"
+            ref={rightRef}
+          >
+            <TokenChart sellToken={sellToken} buyToken={buyToken} />
+          </motion.div>
+
+        </div>
       </div>
     </div>
   );

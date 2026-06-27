@@ -104,7 +104,7 @@ export function TokenSelector({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: "spring", duration: 0.3 }}
-              className="relative w-full max-w-md glass-card overflow-hidden"
+              className="relative w-full max-w-md glass-card overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
@@ -147,7 +147,7 @@ export function TokenSelector({
                           setIsOpen(false);
                           setQuery("");
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-bg-tertiary hover:border-base-blue/50 hover:bg-base-blue/10 transition-all text-sm"
+                        className="flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-border bg-bg-tertiary hover:border-base-blue/50 hover:bg-base-blue/10 transition-all text-sm min-h-[44px]"
                       >
                         <TokenLogo symbol={token.symbol} logoURI={token.logoURI} size={16} />
                         <span className="font-medium">{token.symbol}</span>
@@ -158,7 +158,7 @@ export function TokenSelector({
               )}
 
               {/* Token list */}
-              <div className="overflow-y-auto max-h-64">
+              <div className="overflow-y-auto flex-1 min-h-0" style={{ maxHeight: "40vh" }}>
                 {filtered.length === 0 ? (
                   <div className="p-8 text-center text-text-muted text-sm">
                     No tokens found
@@ -172,7 +172,7 @@ export function TokenSelector({
                         setIsOpen(false);
                         setQuery("");
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-secondary transition-all group"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-bg-secondary transition-all group min-h-[56px]"
                     >
                       <TokenLogo
                         symbol={token.symbol}

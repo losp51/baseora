@@ -59,10 +59,10 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         className="glass-card p-6 mb-6"
       >
-        <div className="flex items-start gap-5">
+        <div className="flex items-start gap-3 sm:gap-5">
           {/* Avatar */}
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
+            className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0"
             style={{
               background: `linear-gradient(135deg, ${levelColor}20, ${levelColor}10)`,
               border: `1px solid ${levelColor}30`,
@@ -99,14 +99,14 @@ export default function ProfilePage() {
 
             <LevelBadge level={level} className="mb-3" />
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {[
                 { label: "Total XP", value: formatXP(xp) },
                 { label: "Swaps", value: userPoints?.swap_count ?? 0 },
                 { label: "Streak", value: `${userPoints?.streak_days ?? 0}d 🔥` },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <div className="font-bold text-text-primary">{stat.value}</div>
+                  <div className="font-bold text-sm sm:text-base text-text-primary">{stat.value}</div>
                   <div className="text-xs text-text-muted">{stat.label}</div>
                 </div>
               ))}

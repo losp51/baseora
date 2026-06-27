@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function AgentPage() {
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+    <div className="min-h-[calc(100dvh-4rem)] flex flex-col">
       {/* Background */}
       <div
         className="fixed top-1/3 right-1/4 w-[400px] h-[400px] pointer-events-none"
@@ -29,7 +29,7 @@ export default function AgentPage() {
             <div>
               <h1 className="font-bold text-text-primary">Baseora AI Agent</h1>
               <p className="text-xs text-text-muted">
-                DeFi assistant · Answers in English · Understands Turkish
+                DeFi assistant for Base
               </p>
             </div>
             <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-success/30 bg-success/10">
@@ -42,7 +42,7 @@ export default function AgentPage() {
 
       {/* Chat area */}
       <div className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-0 flex flex-col min-h-0">
-        <div className="flex-1 flex flex-col min-h-0" style={{ height: "calc(100vh - 10rem)" }}>
+        <div className="flex-1 flex flex-col min-h-0" style={{ height: "calc(100dvh - 10rem)" }}>
           <AgentChat />
         </div>
       </div>

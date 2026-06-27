@@ -8,10 +8,6 @@ interface UseLeaderboardResult {
   leaderboard: LeaderboardEntry[];
   userEntry: LeaderboardEntry | null;
   isLoading: boolean;
-  period: string;
-  sortBy: string;
-  setPeriod: (p: string) => void;
-  setSortBy: (s: string) => void;
 }
 
 export function useLeaderboard(): UseLeaderboardResult {
@@ -19,30 +15,28 @@ export function useLeaderboard(): UseLeaderboardResult {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [userEntry, setUserEntry] = useState<LeaderboardEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [period, setPeriod] = useState("all");
-  const [sortBy, setSortBy] = useState("xp");
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams({ period, sortBy });
+        const params = new URLSearchParams({ period: "all", sortBy: "xp" });
         if (address) params.set("wallet", address);
         const res = await fetch(`/api/leaderboard?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
-          setLeaderboard(data.leaderboard);
-          setUserEntry(data.userEntry);
+          setLeaderboard(data.leaderboard ?? []);
+          setUserEntry(data.userEntry ?? null);
         }
       } catch {
-        // silently fail
+        /* silently fail */
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [address, period, sortBy]);
+  }, [address]);
 
-  return { leaderboard, userEntry, isLoading, period, sortBy, setPeriod, setSortBy };
+  return { leaderboard, userEntry, isLoading };
 }

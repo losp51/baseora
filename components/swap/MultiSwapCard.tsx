@@ -156,15 +156,15 @@ function PairRow({
       </div>
 
       {/* Sell / Buy row */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         {/* Sell amount + token */}
         <div className="flex-1 flex items-center gap-2 bg-bg-secondary rounded-xl px-3 py-2">
           <input
             type="number" placeholder="0" min="0"
             value={pair.sellAmount}
             onChange={e => handleAmountChange(e.target.value)}
-            className="w-20 bg-transparent text-base font-semibold text-text-primary
-                       placeholder:text-text-muted outline-none min-w-0"
+            className="flex-1 min-w-0 bg-transparent text-base font-semibold text-text-primary
+                       placeholder:text-text-muted outline-none"
           />
           <TokenSelector
             value={pair.sellToken}
@@ -173,11 +173,14 @@ function PairRow({
           />
         </div>
 
-        <ArrowRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+        <ArrowRight className="w-4 h-4 text-text-muted flex-shrink-0 hidden sm:block mx-auto" />
+        <div className="sm:hidden flex justify-center">
+          <div className="w-px h-4 bg-border" />
+        </div>
 
         {/* Buy token + estimated amount */}
         <div className="flex-1 flex items-center gap-2 bg-bg-secondary rounded-xl px-3 py-2">
-          <span className="flex-1 text-base font-semibold text-text-primary font-mono">
+          <span className="flex-1 min-w-0 text-base font-semibold text-text-primary font-mono truncate">
             {pair.quote?.buyAmount || "0"}
           </span>
           <TokenSelector
