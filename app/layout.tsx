@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { MobileNav } from "@/components/layout/MobileNav";
 import FlowFieldBackground from "@/components/ui/FlowFieldBackground";
 import BlockchainBackground from "@/components/ui/BlockchainBackground";
 import "./globals.css";
@@ -37,9 +38,10 @@ export default function RootLayout({
         <Providers>
           <BlockchainBackground />
           <Navbar />
-          <main className="flex-1 pt-16" style={{ position: "relative", zIndex: 1 }}>
+          <main className="flex-1 pt-16 pb-16 md:pb-0" style={{ position: "relative", zIndex: 1 }}>
             {children}
           </main>
+          <MobileNav />
           <Footer />
         </Providers>
       </body>

@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ConnectButton } from "@/components/ui/ConnectButton";
 import { NetworkBadge }  from "@/components/ui/NetworkBadge";
 import { cn } from "@/lib/utils";
-import { Menu, X, Zap, Sun, Moon } from "lucide-react";
+import { Zap, Sun, Moon } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/swap",        label: "Swap" },
@@ -20,9 +19,7 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
-
   const isLight = resolvedTheme === "light";
 
   return (
@@ -85,63 +82,10 @@ export function Navbar() {
             </button>
 
             <ConnectButton />
-
-            <button
-              className="md:hidden p-3 rounded-lg hover:bg-bg-secondary transition-all"
-              onClick={() => setMobileOpen(!mobileOpen)}
-            >
-              {mobileOpen
-                ? <X    className="w-5 h-5 text-text-secondary" />
-                : <Menu className="w-5 h-5 text-text-secondary" />
-              }
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border backdrop-blur-xl"
-            style={{ background: "var(--bg-primary)", borderColor: "var(--border)" }}
-          >
-            <div className="px-4 py-3 space-y-1">
-              {NAV_LINKS.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      "flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all",
-                      isActive
-                        ? "bg-base-blue/10 text-base-blue border border-base-blue/20"
-                        : "text-text-secondary hover:text-text-primary hover:bg-bg-secondary"
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-              <div className="pt-2 pb-1 flex items-center gap-3">
-                <NetworkBadge />
-                <button
-                  onClick={() => setTheme(isLight ? "dark" : "light")}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-all"
-                >
-                  {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                  {isLight ? "Dark mode" : "Light mode"}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </nav>
   );
 }
