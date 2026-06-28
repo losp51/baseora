@@ -45,13 +45,13 @@ export function useUserPoints() {
     fetch();
   }, [address]);
 
-  const awardXP = async (xp_amount: number, event_type: string) => {
+  const awardXP = async (xp_amount: number, event_type: string, volume_usd?: number) => {
     if (!address) return;
     try {
       const res = await window.fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet: address, xp_amount, event_type }),
+        body: JSON.stringify({ wallet: address, xp_amount, event_type, volume_usd: volume_usd ?? 0 }),
       });
       if (res.ok) {
         const json = await res.json();

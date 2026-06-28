@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase";
 import {
   getLevelFromXP,
   getXPToNextLevel,
@@ -6,77 +7,177 @@ import {
 } from "@/types/reward";
 import { generateReferralCode } from "@/lib/points";
 
-// Mock user store for demo — replace with Supabase
-const MOCK_USERS: Record<string, {
-  wallet_address: string;
-  total_xp: number;
-  streak_days: number;
-  swap_count: number;
-  total_volume_usd: number;
-  referral_count: number;
-}> = {};
-
+// ── GET /api/user?wallet=0x... ──────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const wallet = searchParams.get("wallet");
+  const wallet = searchParams.get("wallet")?.toLowerCase();
 
   if (!wallet) {
     return NextResponse.json({ error: "Wallet required" }, { status: 400 });
   }
 
-  const user = MOCK_USERS[wallet.toLowerCase()] || {
-    wallet_address: wallet,
-    total_xp: 0,
-    streak_days: 0,
-    swap_count: 0,
-    total_volume_usd: 0,
-    referral_count: 0,
-  };
+  try {
+    const supabase = createServiceClient();
 
-  const level = getLevelFromXP(user.total_xp);
-  const xpToNext = getXPToNextLevel(user.total_xp, level);
-  const progress = getLevelProgress(user.total_xp, level);
+    // Upsert: kullanıcı yoksa oluştur, varsa getir
+    const { data, error } = await supabase
+      .from("user_points")
+      .upsert(
+        {
+          wallet_address: wallet,
+          referral_code: generateReferralCode(wallet),
+        },
+        {
+          onConflict: "wallet_address",
+          ignoreDuplicates: true,
+        }
+      )
+      .select()
+      .single();
+
+    if (error && error.code !== "23505") {
+      // 23505 = unique violation (already exists) — fetch separately
+      const { data: existing } = await supabase
+        .from("user_points")
+        .select("*")
+        .eq("wallet_address", wallet)
+        .single();
+
+      if (existing) return buildResponse(existing);
+      throw error;
+    }
+
+    const row = data ?? (await supabase
+      .from("user_points")
+      .select("*")
+      .eq("wallet_address", wallet)
+      .single()).data;
+
+    return buildResponse(row);
+  } catch (err) {
+    console.error("GET /api/user error:", err);
+    // Fallback: return empty profile so UI doesn't break
+    return NextResponse.json(emptyProfile(wallet));
+  }
+}
+
+// ── POST /api/user — award XP ───────────────────────────────────────
+export async function POST(req: NextRequest) {
+  try {
+    const { wallet, xp_amount, event_type, volume_usd } = await req.json();
+    const addr = wallet?.toLowerCase();
+
+    if (!addr || !xp_amount) {
+      return NextResponse.json({ error: "Missing params" }, { status: 400 });
+    }
+
+    const supabase = createServiceClient();
+
+    // Fetch current row
+    const { data: current } = await supabase
+      .from("user_points")
+      .select("*")
+      .eq("wallet_address", addr)
+      .single();
+
+    const base = current ?? {
+      wallet_address: addr,
+      total_xp: 0,
+      total_volume_usd: 0,
+      swap_count: 0,
+      referral_count: 0,
+      streak_days: 0,
+      last_swap_date: null,
+      referral_code: generateReferralCode(addr),
+    };
+
+    const newXP     = (base.total_xp ?? 0) + xp_amount;
+    const newVolume = (base.total_volume_usd ?? 0) + (volume_usd ?? 0);
+    const newSwaps  = event_type === "swap" ? (base.swap_count ?? 0) + 1 : (base.swap_count ?? 0);
+
+    // Streak logic
+    let newStreak  = base.streak_days ?? 0;
+    const today    = new Date().toISOString().split("T")[0];
+    const lastDate = base.last_swap_date;
+    if (event_type === "swap") {
+      if (!lastDate) {
+        newStreak = 1;
+      } else {
+        const diff = Math.floor(
+          (new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000
+        );
+        if (diff === 1) newStreak += 1;
+        else if (diff > 1) newStreak = 1;
+        // diff === 0 means already swapped today, keep streak
+      }
+    }
+
+    const updates = {
+      wallet_address:   addr,
+      total_xp:         newXP,
+      total_volume_usd: newVolume,
+      swap_count:       newSwaps,
+      streak_days:      newStreak,
+      last_swap_date:   event_type === "swap" ? today : lastDate,
+      referral_code:    base.referral_code ?? generateReferralCode(addr),
+      updated_at:       new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from("user_points")
+      .upsert(updates, { onConflict: "wallet_address" });
+
+    if (error) throw error;
+
+    // Log XP transaction
+    await supabase.from("xp_transactions").insert({
+      wallet_address: addr,
+      amount:         xp_amount,
+      reason:         event_type,
+    }).throwOnError();
+
+    const newLevel = getLevelFromXP(newXP);
+
+    return NextResponse.json({
+      success:   true,
+      new_xp:    newXP,
+      new_level: newLevel,
+      xp_earned: xp_amount,
+    });
+  } catch (err) {
+    console.error("POST /api/user error:", err);
+    return NextResponse.json({ error: "Failed to award XP" }, { status: 500 });
+  }
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+function buildResponse(row: Record<string, unknown>) {
+  const xp      = (row.total_xp as number) ?? 0;
+  const level   = getLevelFromXP(xp);
+  const xpNext  = getXPToNextLevel(xp, level);
+  const progress = getLevelProgress(xp, level);
 
   return NextResponse.json({
-    ...user,
+    ...row,
     level,
-    xp_to_next: xpToNext,
+    xp_to_next:     xpNext,
     level_progress: progress,
-    referral_code: generateReferralCode(wallet),
+    referral_code:  (row.referral_code as string) ?? generateReferralCode(row.wallet_address as string),
   });
 }
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { wallet, xp_amount, event_type } = body;
-
-  if (!wallet || !xp_amount) {
-    return NextResponse.json({ error: "Missing params" }, { status: 400 });
-  }
-
-  const key = wallet.toLowerCase();
-  if (!MOCK_USERS[key]) {
-    MOCK_USERS[key] = {
-      wallet_address: wallet,
-      total_xp: 0,
-      streak_days: 0,
-      swap_count: 0,
-      total_volume_usd: 0,
-      referral_count: 0,
-    };
-  }
-
-  MOCK_USERS[key].total_xp += xp_amount;
-  if (event_type === "swap") {
-    MOCK_USERS[key].swap_count += 1;
-  }
-
-  const level = getLevelFromXP(MOCK_USERS[key].total_xp);
-
-  return NextResponse.json({
-    success: true,
-    new_xp: MOCK_USERS[key].total_xp,
-    new_level: level,
-    xp_earned: xp_amount,
-  });
+function emptyProfile(wallet: string) {
+  return {
+    wallet_address:   wallet,
+    total_xp:         0,
+    level:            "Bronze",
+    xp_to_next:       1000,
+    level_progress:   0,
+    streak_days:      0,
+    swap_count:       0,
+    total_volume_usd: 0,
+    referral_count:   0,
+    referral_code:    generateReferralCode(wallet),
+  };
 }

@@ -231,7 +231,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
         );
         const xpEarned = calculateSwapXP(sellUSD, false);
         if (xpEarned > 0) {
-          await awardXP(xpEarned, "swap");
+          await awardXP(xpEarned, "swap", sellUSD);
           toast.success(`+${xpEarned} XP earned!`, { icon: "🔵", duration: 3000 });
         }
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 },
