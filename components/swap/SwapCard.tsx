@@ -69,9 +69,8 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
   });
 
   const isMock = !!(quote as unknown as Record<string, unknown>)?.__isMock;
-
-  // With real 0x API key, quote has a transaction object
-  const hasRealQuote = !isMock && !!(quote as unknown as Record<string, unknown>)?.transaction;
+  // Only show mock UI when wallet is connected — without taker, we always get mock
+  const showMockWarning = isMock && isConnected;
 
   /* ── balances ── */
   const { balanceRaw: sellBalanceRaw, formatted: sellBalanceFormatted } =
@@ -109,7 +108,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
   };
 
   const handleSwap = async () => {
-    if (isMock) {
+    if (showMockWarning) {
       toast.error("Add your 0x API key in .env.local to execute real swaps.");
       return;
     }
@@ -271,7 +270,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-base-blue" />
           <h1 className="font-semibold text-text-primary">Swap</h1>
-          {isMock && (
+          {showMockWarning && (
             <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full
                              bg-warning/15 border border-warning/30 text-warning text-xs font-medium">
               <FlaskConical className="w-2.5 h-2.5" /> Demo
@@ -377,11 +376,11 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
 
             {priceImpact > 0 && <PriceImpact impact={priceImpact} />}
 
-            {isMock && (
+            {showMockWarning && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg
                               bg-warning/8 border border-warning/20 text-xs text-warning">
                 <FlaskConical className="w-3 h-3 flex-shrink-0" />
-                Demo prices via CoinGecko. Add 0x API key for live quotes & execution.
+                Demo prices via CoinGecko. Add 0x API key for live quotes &amp; execution.
               </div>
             )}
           </div>
@@ -407,7 +406,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
                   style={{ background: "rgba(255,77,106,0.7)" }}>
             Price Impact Too High
           </button>
-        ) : isMock && canSwap ? (
+        ) : showMockWarning && canSwap ? (
           <button onClick={handleSwap}
                   className="btn-primary w-full py-3.5 text-sm flex items-center justify-center gap-2
                              opacity-80 cursor-pointer">

@@ -9,8 +9,6 @@ import { cn } from "@/lib/utils";
 const SUGGESTIONS = [
   { icon: "🔄", text: "Swap 5 USDC to ETH" },
   { icon: "🌊", text: "Swap 50 USDC to AERO" },
-  { icon: "⛽", text: "How can I reduce gas fees on Base?" },
-  { icon: "📈", text: "What are the best yield farming options on Base?" },
 ];
 
 export function AgentChat() {
