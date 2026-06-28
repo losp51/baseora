@@ -1,6 +1,10 @@
 import { streamText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withX402 } from "x402-next";
+
+const payTo = (process.env.X402_PAY_TO_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`;
+const network = (process.env.X402_NETWORK || "base-sepolia") as "base" | "base-sepolia";
 
 const systemPrompt = `You are the AI assistant for "Baseora", a DEX Aggregator running on the Base blockchain network.
 You help users with token swaps, DeFi strategies, portfolio analysis, and everything about the Base ecosystem.
@@ -34,7 +38,7 @@ You can help with:
 - Yield farming and liquidity providing concepts
 - NFT and on-chain activity on Base`;
 
-export async function POST(req: NextRequest) {
+async function agentHandler(req: NextRequest): Promise<NextResponse> {
   const { messages } = await req.json();
 
   const result = await streamText({
@@ -44,5 +48,18 @@ export async function POST(req: NextRequest) {
     maxTokens: 1024,
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse() as unknown as NextResponse;
 }
+
+export const POST = withX402(
+  agentHandler,
+  payTo,
+  {
+    price: "$0.01",
+    network,
+    config: {
+      description: "Baseora AI Agent — DeFi assistant for Base ($0.01 USDC per query)",
+      maxTimeoutSeconds: 120,
+    },
+  }
+);
