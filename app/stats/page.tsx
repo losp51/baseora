@@ -69,6 +69,10 @@ export default function StatsPage() {
         <p className="text-text-secondary text-sm">
           Real-time trading statistics for Baseora on Base
         </p>
+        {/* Demo data disclaimer */}
+        <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full border border-warning/30 bg-warning/10">
+          <span className="text-xs text-warning font-medium">⚠ Demo data — connect Supabase for live stats</span>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -175,11 +179,11 @@ export default function StatsPage() {
               />
               <Bar
                 dataKey="volume"
-                fill="url(#blueGradient)"
+                fill="url(#statsBlueGradient)"
                 radius={[4, 4, 0, 0]}
               />
               <defs>
-                <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="statsBlueGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#0052FF" />
                   <stop offset="100%" stopColor="#0052FF" stopOpacity={0.4} />
                 </linearGradient>

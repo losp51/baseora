@@ -119,7 +119,21 @@ export async function GET(req: NextRequest) {
       });
       const data = await res.json();
 
-      if (res.ok) return NextResponse.json(data);
+      if (res.ok) {
+        // 0x v2 uses route.fills instead of sources — normalize to sources format
+        if (data.route?.fills && !data.sources) {
+          const fillMap: Record<string, number> = {};
+          for (const fill of data.route.fills) {
+            fillMap[fill.source] = (fillMap[fill.source] || 0) + Number(fill.proportionBps);
+          }
+          const totalBps = Object.values(fillMap).reduce((a, b) => a + b, 0) || 10000;
+          data.sources = Object.entries(fillMap).map(([name, bps]) => ({
+            name,
+            proportion: (bps / totalBps).toFixed(4),
+          }));
+        }
+        return NextResponse.json(data);
+      }
 
       /* 0x returned an error — log it and fall through to mock */
       console.warn("0x quote error:", res.status, data.reason ?? JSON.stringify(data));

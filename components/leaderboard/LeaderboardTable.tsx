@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, ChevronDown } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { RankBadge, LevelBadge } from "./RankBadge";
 import { shortenAddress } from "@/lib/utils";
 import { formatXP } from "@/lib/points";
@@ -47,7 +47,21 @@ export function LeaderboardTable({ data, currentWallet, isLoading }: Leaderboard
   }
 
   const totalPages = Math.ceil(data.length / PAGE_SIZE);
-  const visible    = data.slice(0, page * PAGE_SIZE);
+  const start      = (page - 1) * PAGE_SIZE;
+  const visible    = data.slice(start, start + PAGE_SIZE);
+
+  /* build page number list with ellipsis: 1 … 4 5 6 … 12 */
+  const getPageNumbers = (): (number | "…")[] => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | "…")[] = [1];
+    if (page > 3) pages.push("…");
+    for (let p = Math.max(2, page - 1); p <= Math.min(totalPages - 1, page + 1); p++) {
+      pages.push(p);
+    }
+    if (page < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+    return pages;
+  };
 
   return (
     <div>
@@ -59,7 +73,7 @@ export function LeaderboardTable({ data, currentWallet, isLoading }: Leaderboard
       </div>
 
       <div className="space-y-0.5">
-        {visible.map((entry, i) => {
+        {visible.map((entry) => {
           const isMe = entry.wallet_address.toLowerCase() === currentWallet?.toLowerCase();
           return (
             <div
@@ -105,17 +119,60 @@ export function LeaderboardTable({ data, currentWallet, isLoading }: Leaderboard
         })}
       </div>
 
-      {/* Load more */}
-      {page < totalPages && (
-        <button
-          onClick={() => setPage(p => p + 1)}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl
-                     text-xs text-text-muted hover:text-text-primary border border-border
-                     hover:border-border-hover transition-all"
-        >
-          <ChevronDown className="w-3.5 h-3.5" />
-          Show more ({data.length - page * PAGE_SIZE} remaining)
-        </button>
+      {/* ── Pagination ── */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-1">
+          {/* Prev */}
+          <button
+            onClick={() => setPage(p => p - 1)}
+            disabled={page === 1}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border
+                       text-text-muted hover:text-text-primary hover:border-border-hover
+                       disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Page numbers */}
+          {getPageNumbers().map((p, i) =>
+            p === "…" ? (
+              <span key={`ellipsis-${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-text-muted">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={cn(
+                  "w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all",
+                  p === page
+                    ? "bg-base-blue text-white border border-base-blue"
+                    : "border border-border text-text-muted hover:text-text-primary hover:border-border-hover"
+                )}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          {/* Next */}
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={page === totalPages}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border
+                       text-text-muted hover:text-text-primary hover:border-border-hover
+                       disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Page info */}
+      {totalPages > 1 && (
+        <p className="mt-2 text-center text-xs text-text-muted">
+          {start + 1}–{Math.min(start + PAGE_SIZE, data.length)} / {data.length} traders
+        </p>
       )}
     </div>
   );

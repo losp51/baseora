@@ -149,28 +149,15 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Recent activity placeholder */}
+      {/* Recent activity */}
       <div className="glass-card p-4">
         <h3 className="font-semibold mb-4 flex items-center gap-2">
           📋 Recent Swaps
         </h3>
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-bg-tertiary"
-            >
-              <div className="shimmer w-8 h-8 rounded-full" />
-              <div className="flex-1 space-y-1">
-                <div className="shimmer h-3 w-32 rounded" />
-                <div className="shimmer h-2 w-24 rounded" />
-              </div>
-              <div className="shimmer h-3 w-16 rounded" />
-            </div>
-          ))}
-          <p className="text-xs text-text-muted text-center pt-1">
-            Swap history available after first transaction
-          </p>
+        <div className="flex flex-col items-center justify-center py-8 gap-2">
+          <span className="text-2xl">🔄</span>
+          <p className="text-sm text-text-secondary font-medium">No swaps yet</p>
+          <p className="text-xs text-text-muted">Your swap history will appear here after your first transaction.</p>
         </div>
       </div>
     </div>

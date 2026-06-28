@@ -176,7 +176,7 @@ export function TokenChart({ sellToken, buyToken }: Props) {
                   onMouseLeave={() => setHovered(null)}
                 >
                   <defs>
-                    <linearGradient id="cGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id={`chartGrad-${sellToken.address.slice(2,8)}`} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%"   stopColor={color} stopOpacity={0.3} />
                       <stop offset="100%" stopColor={color} stopOpacity={0}   />
                     </linearGradient>
@@ -205,7 +205,7 @@ export function TokenChart({ sellToken, buyToken }: Props) {
                   <Area
                     type="monotone" dataKey="price"
                     stroke={color} strokeWidth={1.5}
-                    fill="url(#cGrad)" dot={false}
+                    fill={`url(#chartGrad-${sellToken.address.slice(2,8)})`} dot={false}
                     activeDot={{ r: 4, fill: color, strokeWidth: 0 }}
                     isAnimationActive={false}
                   />

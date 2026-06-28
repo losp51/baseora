@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpDown, Loader2, CheckCircle2, ExternalLink, Zap, FlaskConical } from "lucide-react";
+import { ArrowUpDown, Loader2, CheckCircle2, ExternalLink, Zap, FlaskConical, ShieldCheck } from "lucide-react";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
+import { parseUnits, formatUnits, erc20Abi, maxUint256 } from "viem";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
@@ -15,10 +15,14 @@ import { ConnectButton }    from "@/components/ui/ConnectButton";
 import { useSwapQuote }     from "@/hooks/useSwapQuote";
 import { useTokenBalance }  from "@/hooks/useTokenBalance";
 import { useUserPoints }    from "@/hooks/useUserPoints";
-import { BASE_TOKENS } from "@/lib/tokens";import { calculatePriceImpact }           from "@/lib/0x";
-import { calculateSwapXP }               from "@/lib/points";
-import { formatUSD }                      from "@/lib/utils";
+import { BASE_TOKENS }      from "@/lib/tokens";
+import { calculatePriceImpact } from "@/lib/0x";
+import { calculateSwapXP }      from "@/lib/points";
+import { formatUSD }            from "@/lib/utils";
 import type { Token } from "@/types/token";
+
+// Permit2 contract address (same on all EVM chains)
+const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as const;
 
 interface SwapCardProps {
   onTokensChange?: (sell: Token, buy: Token) => void;
@@ -45,7 +49,11 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
   const sellAmountRaw =
     sellAmount && sellToken
       ? (() => {
-          try { return parseUnits(sellAmount, sellToken.decimals).toString(); }
+          try {
+            // Normalize comma → dot for locales
+            const normalized = sellAmount.replace(",", ".");
+            return parseUnits(normalized, sellToken.decimals).toString();
+          }
           catch { return "0"; }
         })()
       : "0";
@@ -62,9 +70,12 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
 
   const isMock = !!(quote as unknown as Record<string, unknown>)?.__isMock;
 
+  // With real 0x API key, quote has a transaction object
+  const hasRealQuote = !isMock && !!(quote as unknown as Record<string, unknown>)?.transaction;
+
   /* ── balances ── */
   const { balanceRaw: sellBalanceRaw, formatted: sellBalanceFormatted } =
-    useTokenBalance(sellToken?.address, address);
+    useTokenBalance(sellToken?.address, address, sellToken?.decimals ?? 18);
 
   /* ── derived values ── */
   const buyAmount = effectiveBuyAmount;
@@ -88,7 +99,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
     const prev = sellToken;
     setSellTokenState(buyToken);
     setBuyTokenState(prev);
-    setSellAmount(buyAmount || "");
+    setSellAmount("");
     onTokensChange?.(buyToken, prev);
   };
 
@@ -107,6 +118,38 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
 
     setIsSwapping(true);
     try {
+      // ── Check & handle Permit2 allowance for ERC-20 tokens ──
+      const isNativeToken =
+        !sellToken?.address ||
+        sellToken.address.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
+      if (!isNativeToken && sellToken?.address) {
+        const allowance = await publicClient.readContract({
+          address: sellToken.address as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address, PERMIT2_ADDRESS],
+        });
+
+        const sellAmountBigInt = (() => {
+          try { return parseUnits(sellAmount.replace(",", "."), sellToken.decimals); }
+          catch { return BigInt(0); }
+        })();
+
+        if ((allowance as bigint) < sellAmountBigInt) {
+          toast.loading("Approving token…", { id: "approve-tx" });
+          const approveTx = await walletClient.writeContract({
+            address: sellToken.address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [PERMIT2_ADDRESS, maxUint256],
+          });
+          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+          toast.success("Token approved!", { id: "approve-tx", duration: 2000 });
+        }
+      }
+
+      // ── Send swap transaction ──
       const txData = (quote as unknown as Record<string, unknown>).transaction as Record<string,string> | undefined || {
         to:    quote.to,
         data:  quote.data,
@@ -114,9 +157,38 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
         value: quote.value,
       };
 
+      // 0x v2: if permit2 signature is required, sign and append to calldata
+      const quoteAny = quote as unknown as Record<string, unknown>;
+      const permit2  = quoteAny.permit2 as { eip712?: { domain: unknown; types: unknown; message: unknown; primaryType: string } } | undefined;
+
+      let finalData = txData.data as `0x${string}`;
+
+      if (permit2?.eip712) {
+        toast.loading("Sign Permit2…", { id: "permit2-sign" });
+        try {
+          const sig = await walletClient.signTypedData({
+            domain:      permit2.eip712.domain      as Parameters<typeof walletClient.signTypedData>[0]["domain"],
+            types:       permit2.eip712.types        as Parameters<typeof walletClient.signTypedData>[0]["types"],
+            primaryType: permit2.eip712.primaryType,
+            message:     permit2.eip712.message      as Parameters<typeof walletClient.signTypedData>[0]["message"],
+          });
+          toast.dismiss("permit2-sign");
+
+          // Append signature length (32 bytes) + signature to calldata
+          const sigHex   = sig.slice(2);            // strip 0x
+          const sigLen   = (sigHex.length / 2).toString(16).padStart(64, "0");
+          const padded   = sigHex.padEnd(Math.ceil(sigHex.length / 64) * 64, "0");
+          finalData      = (finalData + sigLen + padded) as `0x${string}`;
+        } catch {
+          toast.dismiss("permit2-sign");
+          toast.error("Permit2 signing rejected");
+          return;
+        }
+      }
+
       const txHash = await walletClient.sendTransaction({
         to:    txData.to   as `0x${string}`,
-        data:  txData.data as `0x${string}`,
+        data:  finalData,
         value: txData.value ? BigInt(txData.value) : BigInt(0),
         gas:   txData.gas   ? BigInt(txData.gas)   : undefined,
       });
@@ -127,6 +199,23 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
       const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
       if (receipt.status === "success") {
+        // Collect $0.10 USDC fee for confirmed swap via x402
+        try {
+          await fetch("/api/swap-fee", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              txHash,
+              sellToken: sellToken?.symbol,
+              buyToken: buyToken?.symbol,
+              sellAmount,
+              buyAmount,
+            }),
+          });
+        } catch {
+          console.warn("Swap fee collection failed");
+        }
+
         toast.success(
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-success" />
@@ -213,7 +302,11 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
           <input
             type="number" placeholder="0" min="0"
             value={sellAmount}
-            onChange={(e) => setSellAmount(e.target.value)}
+            onChange={(e) => {
+                // Normalize: replace comma with dot for locales that use comma as decimal
+                const val = e.target.value.replace(",", ".");
+                setSellAmount(val);
+              }}
             className="flex-1 bg-transparent text-2xl font-semibold text-text-primary
                        placeholder:text-text-muted outline-none min-w-0"
           />
@@ -321,8 +414,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
             <FlaskConical className="w-4 h-4" />
             Demo — Add API Key to Swap
           </button>
-        ) : (
-          <button onClick={handleSwap} disabled={!canSwap}
+        ) : (          <button onClick={handleSwap} disabled={!canSwap}
                   className="btn-primary w-full py-3.5 text-sm flex items-center justify-center gap-2">
             {isSwapping ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Swapping...</>

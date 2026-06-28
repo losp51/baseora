@@ -81,9 +81,10 @@ export function ConnectButton({ className, size = "md" }: ConnectButtonProps) {
                         alt={chain.name ?? "chain icon"}
                         src={chain.iconUrl}
                         className="w-4 h-4 rounded-full"
+                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
                       />
                     )}
-                    <span className="text-text-secondary">{chain.name}</span>
+                    <span className="text-text-secondary hidden sm:block">{chain.name}</span>
                   </button>
 
                   <button

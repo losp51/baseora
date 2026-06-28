@@ -88,6 +88,10 @@ export default function BlockchainBackground() {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
+    // Respect user's motion preference
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) return;
+
     const cv  = ref.current!;
     const ctx = cv.getContext("2d")!;
     const N   = makePerlin();
@@ -368,7 +372,22 @@ export default function BlockchainBackground() {
     resize();
     loop();
     window.addEventListener("resize", resize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize",resize); };
+
+    // Pause animation when tab is hidden (battery/CPU saving)
+    const handleVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+      } else {
+        loop();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [resolvedTheme]);
 
   return (

@@ -34,6 +34,14 @@ export function TokenSelector({
     }
   }, [isOpen]);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setIsOpen(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen]);
+
   useEffect(() => {
     const fetchTokens = async () => {
       try {

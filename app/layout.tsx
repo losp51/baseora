@@ -3,7 +3,6 @@ import { Providers } from "./providers";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MobileNav } from "@/components/layout/MobileNav";
-import FlowFieldBackground from "@/components/ui/FlowFieldBackground";
 import BlockchainBackground from "@/components/ui/BlockchainBackground";
 import "./globals.css";
 

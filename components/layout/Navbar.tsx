@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ConnectButton } from "@/components/ui/ConnectButton";
 import { NetworkBadge }  from "@/components/ui/NetworkBadge";
@@ -14,13 +15,18 @@ const NAV_LINKS = [
   { href: "/agent",       label: "AI Agent" },
   { href: "/stats",       label: "Stats" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/rewards",     label: "Rewards" },
   { href: "/profile",     label: "Profile" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
-  const isLight = resolvedTheme === "light";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  const isLight = mounted && resolvedTheme === "light";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-bg-primary/80 backdrop-blur-xl"
@@ -47,16 +53,15 @@ export function Navbar() {
                   className={cn(
                     "relative px-3 py-1.5 text-sm font-medium rounded-lg transition-all",
                     isActive
-                      ? "text-white"
+                      ? "text-white bg-base-blue/20"
                       : "text-text-secondary hover:text-text-primary hover:bg-bg-secondary"
                   )}
-                  style={isActive ? { color: "var(--text-primary)" } : undefined}
                 >
                   {link.label}
                   {isActive && (
                     <motion.div
                       layoutId="nav-indicator"
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-base-blue"
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-base-blue"
                     />
                   )}
                 </Link>
@@ -75,9 +80,11 @@ export function Navbar() {
               title={isLight ? "Switch to dark mode" : "Switch to light mode"}
               style={{ borderColor: "var(--border)" }}
             >
-              {isLight
-                ? <Moon className="w-4 h-4 text-text-secondary" />
-                : <Sun  className="w-4 h-4 text-text-secondary" />
+              {mounted
+                ? isLight
+                  ? <Moon className="w-4 h-4 text-text-secondary" />
+                  : <Sun  className="w-4 h-4 text-text-secondary" />
+                : <Sun className="w-4 h-4 text-text-secondary opacity-0" />
               }
             </button>
 

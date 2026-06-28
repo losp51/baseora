@@ -47,7 +47,7 @@ export function ProgressBar({ level, xp, progress, xpToNext, className }: Progre
       <div className="relative h-3 bg-bg-tertiary rounded-full overflow-hidden border border-border">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${Math.min(progress, 100)}%` }}
+          animate={{ width: `${Math.max(0, Math.min(progress, 100))}%` }}
           transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
           className="absolute inset-y-0 left-0 rounded-full"
           style={{

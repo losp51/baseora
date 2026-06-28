@@ -13,7 +13,8 @@ interface UseTokenBalanceResult {
 
 export function useTokenBalance(
   tokenAddress?: string,
-  walletAddress?: `0x${string}`
+  walletAddress?: `0x${string}`,
+  decimals: number = 18
 ): UseTokenBalanceResult {
   const isNative =
     !tokenAddress ||
@@ -22,7 +23,11 @@ export function useTokenBalance(
 
   const { data: nativeBalance, isLoading: nativeLoading } = useBalance({
     address: walletAddress,
-    query: { enabled: !!walletAddress && isNative },
+    query: {
+      enabled: !!walletAddress && isNative,
+      staleTime: 5_000,
+      refetchInterval: 10_000,
+    },
   });
 
   const { data: tokenBalance, isLoading: tokenLoading } = useReadContract({
@@ -30,7 +35,11 @@ export function useTokenBalance(
     abi: erc20Abi,
     functionName: "balanceOf",
     args: walletAddress ? [walletAddress] : undefined,
-    query: { enabled: !!walletAddress && !isNative && !!tokenAddress },
+    query: {
+      enabled: !!walletAddress && !isNative && !!tokenAddress,
+      staleTime: 5_000,
+      refetchInterval: 10_000,
+    },
   });
 
   if (isNative) {
@@ -48,7 +57,7 @@ export function useTokenBalance(
 
   const raw = (tokenBalance as bigint) ?? BigInt(0);
   const formatted = raw
-    ? Number(formatUnits(raw, 18)).toFixed(6)
+    ? Number(formatUnits(raw, decimals)).toFixed(6)
     : "0";
 
   return {

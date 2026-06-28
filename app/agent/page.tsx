@@ -41,10 +41,8 @@ export default function AgentPage() {
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-0 flex flex-col min-h-0">
-        <div className="flex-1 flex flex-col min-h-0" style={{ height: "calc(100dvh - 10rem)" }}>
-          <AgentChat />
-        </div>
+      <div className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 flex flex-col min-h-0 overflow-hidden">
+        <AgentChat />
       </div>
     </div>
   );

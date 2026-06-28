@@ -44,19 +44,6 @@ export default function SwapPage() {
       className="px-3 sm:px-6 lg:px-8 py-6 sm:py-8"
       style={{ position: "relative", zIndex: 1, minHeight: "calc(100dvh - 4rem)" }}
     >
-      {/* Background glow */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse 70% 50% at 50% 20%, rgba(0,82,255,0.13) 0%, transparent 65%),
-            radial-gradient(ellipse 40% 40% at 80% 80%, rgba(0,194,255,0.08) 0%, transparent 60%),
-            radial-gradient(ellipse 35% 35% at 15% 70%, rgba(0,82,255,0.07) 0%, transparent 55%)
-          `,
-          zIndex: 0,
-        }}
-      />
-
       {/* Main layout */}
       <div className="relative z-10 max-w-6xl mx-auto">
 
@@ -128,7 +115,7 @@ export default function SwapPage() {
 
           {/* ── Right: Token chart — desktop always, mobile below card ── */}
           <motion.div
-            key={`chart-${activeTab}-${sellToken.address}-${buyToken.address}`}
+            key={`chart-${sellToken.address}-${buyToken.address}`}
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.25 }}

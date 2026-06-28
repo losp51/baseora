@@ -25,9 +25,7 @@ const nextConfig = {
     config.externals.push("pino-pretty", "lokijs", "encoding");
     return config;
   },
-  experimental: {
-    serverComponentsExternalPackages: ["pino"],
-  },
+  serverExternalPackages: ["pino"],
 };
 
 export default nextConfig;

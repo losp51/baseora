@@ -3,23 +3,20 @@
 import { useState } from "react";
 import { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Loader2, Zap, Sparkles, CreditCard, ExternalLink } from "lucide-react";
+import { Send, User, Loader2, Zap, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = [
   { icon: "🔄", text: "Swap 5 USDC to ETH" },
-  { icon: "📊", text: "What's the best DeFi strategy on Base right now?" },
+  { icon: "🌊", text: "Swap 50 USDC to AERO" },
+  { icon: "⛽", text: "How can I reduce gas fees on Base?" },
+  { icon: "📈", text: "What are the best yield farming options on Base?" },
 ];
 
 export function AgentChat() {
   const [messages, setMessages] = useState<{ id: string; role: "user" | "assistant"; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentRequired, setPaymentRequired] = useState<{
-    paywallUrl?: string;
-    amount: string;
-    network: string;
-  } | null>(null);
 
   const endRef   = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +38,6 @@ export function AgentChat() {
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
-    setPaymentRequired(null);
 
     try {
       const res = await fetch("/api/agent", {
@@ -49,19 +45,6 @@ export function AgentChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })) }),
       });
-
-      // x402 Payment Required
-      if (res.status === 402) {
-        const data = await res.json().catch(() => ({}));
-        setPaymentRequired({
-          paywallUrl: data.paywallUrl || data.x402PaywallUrl,
-          amount: data.accepts?.[0]?.maxAmountRequired || "0.01",
-          network: data.accepts?.[0]?.network || "base-sepolia",
-        });
-        // Remove the user message we optimistically added
-        setMessages(prev => prev.filter(m => m.id !== userMsg.id));
-        return;
-      }
 
       if (!res.ok) throw new Error("Agent error");
 
@@ -78,7 +61,6 @@ export function AgentChat() {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value);
-          // Parse Vercel AI SDK stream format
           const lines = chunk.split("\n");
           for (const line of lines) {
             if (line.startsWith("0:")) {
@@ -110,7 +92,7 @@ export function AgentChat() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
 
         {/* Empty state */}
-        {messages.length === 0 && !paymentRequired && (
+        {messages.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -146,52 +128,6 @@ export function AgentChat() {
                 </button>
               ))}
             </div>
-          </motion.div>
-        )}
-
-        {/* x402 Payment Required */}
-        {paymentRequired && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center h-full text-center py-8 px-4"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-gradient-base flex items-center justify-center mb-4">
-              <CreditCard className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-lg font-bold text-text-primary mb-2">Payment Required</h2>
-            <p className="text-text-secondary text-sm mb-1">
-              Each AI Agent query costs <span className="text-base-blue font-semibold">$0.01 USDC</span>
-            </p>
-            <p className="text-text-muted text-xs mb-6">
-              Paid via x402 on {paymentRequired.network} — instant, no subscription needed.
-            </p>
-
-            {paymentRequired.paywallUrl ? (
-              <a
-                href={paymentRequired.paywallUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary px-8 py-3 flex items-center gap-2 text-sm rounded-xl"
-              >
-                <CreditCard className="w-4 h-4" />
-                Pay 0.01 USDC & Continue
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            ) : (
-              <div className="px-4 py-3 rounded-xl bg-base-blue/10 border border-base-blue/20 text-xs text-text-secondary max-w-sm">
-                <strong className="text-base-blue block mb-1">Set up to enable payments:</strong>
-                Add <code className="bg-bg-tertiary px-1 rounded">X402_PAY_TO_ADDRESS</code> to your .env.local
-                to start receiving USDC for each AI query.
-              </div>
-            )}
-
-            <button
-              onClick={() => setPaymentRequired(null)}
-              className="mt-4 text-xs text-text-muted hover:text-text-secondary transition-colors"
-            >
-              ← Back
-            </button>
           </motion.div>
         )}
 
@@ -279,7 +215,7 @@ export function AgentChat() {
           </button>
         </form>
         <p className="text-xs text-text-muted text-center mt-2">
-          $0.01 USDC per query via x402 · Informational only — always DYOR.
+          Free to ask · $0.10 USDC per confirmed swap via x402 · Always DYOR.
         </p>
       </div>
     </div>
