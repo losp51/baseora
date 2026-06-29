@@ -6,18 +6,20 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   Trophy, Zap, Info, Gift, Copy, CheckCircle2,
-  Flame, Star, ExternalLink, Lock, Sparkles,
+  Flame, Star, ExternalLink,
 } from "lucide-react";
-import { LeaderboardTable }  from "@/components/leaderboard/LeaderboardTable";
-import { LevelBadge }        from "@/components/leaderboard/RankBadge";
-import { ProgressBar }       from "@/components/rewards/ProgressBar";
-import { ConnectButton }     from "@/components/ui/ConnectButton";
-import { useLeaderboard }    from "@/hooks/useLeaderboard";
-import { useUserPoints }     from "@/hooks/useUserPoints";
-import { formatXP }          from "@/lib/points";
-import { shortenAddress }    from "@/lib/utils";
-import { LEVEL_THRESHOLDS, LEVEL_COLORS, XP_REWARDS, type Level } from "@/types/reward";
-import { getLevelEmoji }     from "@/lib/points";
+import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
+import { LevelBadge }       from "@/components/leaderboard/RankBadge";
+import { ProgressBar }      from "@/components/rewards/ProgressBar";
+import { RewardCard }       from "@/components/rewards/RewardCard";
+import { ConnectButton }    from "@/components/ui/ConnectButton";
+import { useLeaderboard }   from "@/hooks/useLeaderboard";
+import { useUserPoints }    from "@/hooks/useUserPoints";
+import { formatXP }         from "@/lib/points";
+import { shortenAddress }   from "@/lib/utils";
+import {
+  LEVEL_THRESHOLDS, XP_REWARDS, type Level,
+} from "@/types/reward";
 
 const ALL_LEVELS: Level[] = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Elite"];
 
@@ -33,8 +35,10 @@ const XP_SOURCES = [
 const MINT_ABI = [{
   name: "mint", type: "function", stateMutability: "nonpayable",
   inputs: [
-    { name: "level", type: "uint8" }, { name: "totalVolume", type: "uint256" },
-    { name: "swapCount", type: "uint256" }, { name: "signature", type: "bytes" },
+    { name: "level",       type: "uint8"   },
+    { name: "totalVolume", type: "uint256" },
+    { name: "swapCount",   type: "uint256" },
+    { name: "signature",   type: "bytes"   },
   ],
   outputs: [],
 }] as const;
@@ -43,35 +47,6 @@ const LEVEL_INDEX: Record<Level, number> = {
   Bronze: 0, Silver: 1, Gold: 2, Platinum: 3, Diamond: 4, Elite: 5,
 };
 const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || "") as `0x${string}`;
-
-function MiniNFTCard({ level, unlocked, minted, isLoading, onMint }: {
-  level: Level; unlocked: boolean; minted: boolean; isLoading: boolean; onMint: () => void;
-}) {
-  const color = LEVEL_COLORS[level];
-  const emoji = getLevelEmoji(level);
-  return (
-    <div className="rounded-xl border p-2 flex flex-col items-center gap-1 transition-all"
-         style={{ borderColor: unlocked ? `${color}40` : "var(--border)", background: unlocked ? `${color}08` : undefined, opacity: unlocked ? 1 : 0.45 }}>
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg relative"
-           style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
-        {emoji}
-        {!unlocked && <div className="absolute inset-0 rounded-xl bg-bg-primary/50 flex items-center justify-center"><Lock className="w-3 h-3 text-text-muted" /></div>}
-        {minted && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-success flex items-center justify-center"><span className="text-white text-xs leading-none">✓</span></div>}
-      </div>
-      <span className="text-xs font-semibold text-text-primary">{level}</span>
-      {unlocked && !minted
-        ? <button onClick={onMint} disabled={isLoading}
-                  className="w-full py-1.5 rounded-lg text-xs font-semibold text-white flex items-center justify-center gap-0.5 min-h-[32px]"
-                  style={{ background: `linear-gradient(135deg,${color},${color}99)` }}>
-            <Sparkles className="w-2.5 h-2.5" />{isLoading ? "…" : "Mint"}
-          </button>
-        : minted
-        ? <span className="text-xs text-success">✓ Minted</span>
-        : <span className="text-xs text-text-muted font-mono">{LEVEL_THRESHOLDS[level].toLocaleString()}</span>
-      }
-    </div>
-  );
-}
 
 export default function LeaderboardPage() {
   const { address, isConnected } = useAccount();
@@ -85,11 +60,11 @@ export default function LeaderboardPage() {
   const [mintedLevels, setMintedLevels] = useState<Set<Level>>(new Set());
   const [lastTxHash,   setLastTxHash]   = useState<string | null>(null);
 
-  const xp       = userPoints?.total_xp ?? 0;
-  const level    = userPoints?.level    ?? "Bronze";
-  const progress = userPoints?.level_progress ?? 0;
-  const xpToNext = userPoints?.xp_to_next     ?? 1000;
-  const refLink  = `https://baseora.app?ref=${userPoints?.referral_code ?? "NXS000000"}`;
+  const xp       = userPoints?.total_xp        ?? 0;
+  const level    = userPoints?.level            ?? "Bronze";
+  const progress = userPoints?.level_progress   ?? 0;
+  const xpToNext = userPoints?.xp_to_next       ?? 1000;
+  const refLink  = `https://baseora.app?ref=${userPoints?.referral_code ?? ""}`;
 
   const copyRef = async () => {
     await navigator.clipboard.writeText(refLink);
@@ -110,7 +85,10 @@ export default function LeaderboardPage() {
         body: JSON.stringify({ wallet: address, level: nftLevel, totalVolume: vol, swapCount: swaps }),
       });
       const { signature, demo, message } = await sigRes.json();
-      if (demo) { toast.info(`Demo: ${message || "Deploy contract for real minting."}`); setMintedLevels(p => new Set([...p, nftLevel])); return; }
+      if (demo) {
+        toast.info(`Demo: ${message || "Deploy contract for real minting."}`);
+        setMintedLevels(p => new Set([...p, nftLevel])); return;
+      }
       if (!CONTRACT_ADDRESS) { toast.error("NFT contract not deployed"); return; }
       toast.loading(`Minting ${nftLevel}…`, { id: "mint" });
       const tx = await walletClient.writeContract({
@@ -119,8 +97,10 @@ export default function LeaderboardPage() {
       });
       setLastTxHash(tx);
       const r = await publicClient.waitForTransactionReceipt({ hash: tx });
-      if (r.status === "success") { toast.success(`🎉 ${nftLevel} NFT minted!`, { id: "mint" }); setMintedLevels(p => new Set([...p, nftLevel])); }
-      else toast.error("Mint failed", { id: "mint" });
+      if (r.status === "success") {
+        toast.success(`🎉 ${nftLevel} NFT minted!`, { id: "mint" });
+        setMintedLevels(p => new Set([...p, nftLevel]));
+      } else toast.error("Mint failed", { id: "mint" });
     } catch (e: unknown) {
       const m = e instanceof Error ? e.message : "";
       toast.error(m.includes("rejected") ? "Cancelled" : "Mint failed", { id: "mint" });
@@ -128,25 +108,27 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="text-center mb-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-base-blue/30 bg-base-blue/10 mb-3">
           <Trophy className="w-3.5 h-3.5 text-base-blue" />
-          <span className="text-xs font-medium text-base-blue">Global Rankings</span>
+          <span className="text-xs font-medium text-base-blue">Rankings & Rewards</span>
         </div>
         <h1 className="text-2xl font-bold text-text-primary mb-1">Leaderboard</h1>
-        <p className="text-text-secondary text-sm">Top traders on Base, ranked by XP</p>
+        <p className="text-text-secondary text-sm">Top traders on Base · Earn XP · Mint NFTs</p>
       </motion.div>
 
-      {/* ── Top section: table left, panel right ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-4 items-start mb-6">
+      {/* Main grid: table + rewards panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6 items-start mb-8">
 
-        {/* Table */}
+        {/* ── Left: Leaderboard table ── */}
         <div className="min-w-0">
           <LeaderboardTable data={leaderboard} currentWallet={address} isLoading={isLoading} />
+
+          {/* Sticky "You" row */}
           {address && userEntry && (
             <div className="sticky bottom-4 mt-3 z-10">
               <div className="glass-card px-3 py-2 flex items-center gap-2.5 backdrop-blur-xl"
@@ -166,76 +148,84 @@ export default function LeaderboardPage() {
           )}
         </div>
 
-        {/* Right panel */}
+        {/* ── Right: Rewards panel ── */}
         <div className="space-y-3">
-          {/* XP / connect */}
-          {isConnected
-            ? <ProgressBar level={level} xp={xp} progress={progress} xpToNext={xpToNext} />
-            : <div className="glass-card p-4 text-center">
-                <Trophy className="w-7 h-7 text-base-blue mx-auto mb-2" />
-                <p className="text-xs text-text-muted mb-3">Connect to see your XP & mint NFTs</p>
-                <ConnectButton size="sm" />
-              </div>
-          }
+          {isConnected ? (
+            <>
+              {/* XP Progress */}
+              <ProgressBar level={level} xp={xp} progress={progress} xpToNext={xpToNext} />
 
-          {/* Stats */}
-          {isConnected && (
-            <div className="glass-card p-3 grid grid-cols-2 gap-2">
-              {[
-                { label: "Streak", value: `${userPoints?.streak_days ?? 0}d`, icon: <Flame className="w-3 h-3 text-warning" /> },
-                { label: "Swaps",  value: userPoints?.swap_count ?? 0,         icon: <Zap   className="w-3 h-3 text-base-blue" /> },
-              ].map(s => (
-                <div key={s.label} className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-tertiary">
-                  {s.icon}
-                  <div><div className="text-xs font-bold text-text-primary">{s.value}</div><div className="text-xs text-text-muted">{s.label}</div></div>
+              {/* Stats */}
+              <div className="glass-card p-3 grid grid-cols-2 gap-2">
+                {[
+                  { label: "Streak",    value: `${userPoints?.streak_days ?? 0}d`,                            icon: <Flame  className="w-3 h-3 text-warning" /> },
+                  { label: "Swaps",     value: userPoints?.swap_count ?? 0,                                    icon: <Zap    className="w-3 h-3 text-base-blue" /> },
+                  { label: "Volume",    value: `$${(userPoints?.total_volume_usd ?? 0).toLocaleString()}`,     icon: <Trophy className="w-3 h-3 text-success" /> },
+                  { label: "Referrals", value: userPoints?.referral_count ?? 0,                                icon: <Gift   className="w-3 h-3 text-purple-400" /> },
+                ].map(s => (
+                  <div key={s.label} className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-tertiary">
+                    {s.icon}
+                    <div>
+                      <div className="text-xs font-bold text-text-primary">{s.value}</div>
+                      <div className="text-xs text-text-muted">{s.label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* NFT Mint */}
+              <div className="glass-card p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Star className="w-3.5 h-3.5 text-warning" />
+                  <span className="text-xs font-bold text-text-primary">Level NFTs</span>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* NFT mint */}
-          <div className="glass-card p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Star className="w-3.5 h-3.5 text-warning" />
-              <span className="text-xs font-bold text-text-primary">Level NFTs</span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {ALL_LEVELS.map(n => (
-                <MiniNFTCard key={n} level={n}
-                  unlocked={isConnected && xp >= LEVEL_THRESHOLDS[n]}
-                  minted={mintedLevels.has(n)}
-                  isLoading={mintingLevel === n}
-                  onMint={() => handleMint(n)} />
-              ))}
-            </div>
-            {lastTxHash && (
-              <a href={`https://basescan.org/tx/${lastTxHash}`} target="_blank" rel="noopener noreferrer"
-                 className="mt-2 flex items-center justify-center gap-1 text-xs text-success hover:underline">
-                <ExternalLink className="w-3 h-3" /> BaseScan
-              </a>
-            )}
-          </div>
-
-          {/* Referral */}
-          {isConnected && (
-            <div className="glass-card p-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Gift className="w-3.5 h-3.5 text-base-blue" />
-                <span className="text-xs font-semibold">Referral</span>
-                <span className="ml-auto text-xs text-success font-mono">+1000 XP</span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {ALL_LEVELS.map(n => (
+                    <RewardCard
+                      key={n}
+                      level={n}
+                      unlocked={xp >= LEVEL_THRESHOLDS[n]}
+                      minted={mintedLevels.has(n)}
+                      onMint={() => handleMint(n)}
+                      isLoading={mintingLevel === n}
+                    />
+                  ))}
+                </div>
+                {lastTxHash && (
+                  <a href={`https://basescan.org/tx/${lastTxHash}`} target="_blank" rel="noopener noreferrer"
+                     className="mt-2 flex items-center justify-center gap-1 text-xs text-success hover:underline">
+                    <ExternalLink className="w-3 h-3" /> BaseScan
+                  </a>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-tertiary border border-border">
-                <span className="font-mono text-xs text-text-secondary flex-1 truncate">{refLink}</span>
-                <button onClick={copyRef} className="flex-shrink-0 p-0.5 rounded hover:bg-bg-secondary">
-                  {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5 text-text-muted" />}
-                </button>
+
+              {/* Referral */}
+              <div className="glass-card p-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Gift className="w-3.5 h-3.5 text-base-blue" />
+                  <span className="text-xs font-semibold">Referral</span>
+                  <span className="ml-auto text-xs text-success font-mono">+1000 XP</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-tertiary border border-border">
+                  <span className="font-mono text-xs text-text-secondary flex-1 truncate">{refLink}</span>
+                  <button onClick={copyRef} className="flex-shrink-0 p-0.5 rounded hover:bg-bg-secondary">
+                    {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5 text-text-muted" />}
+                  </button>
+                </div>
               </div>
+            </>
+          ) : (
+            <div className="glass-card p-5 text-center">
+              <Trophy className="w-8 h-8 text-base-blue mx-auto mb-3" />
+              <p className="text-sm font-semibold text-text-primary mb-1">Track your rewards</p>
+              <p className="text-xs text-text-muted mb-4">Connect to see XP, level and mint NFTs</p>
+              <ConnectButton size="sm" />
             </div>
           )}
         </div>
       </div>
 
-      {/* ── How to Earn XP — full width ── */}
+      {/* How to Earn XP */}
       <div className="border-t border-border pt-6">
         <div className="flex items-center gap-2 mb-4">
           <Info className="w-4 h-4 text-base-blue" />

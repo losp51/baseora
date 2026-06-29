@@ -15,7 +15,6 @@ const NAV_LINKS = [
   { href: "/agent",       label: "AI Agent" },
   { href: "/stats",       label: "Stats" },
   { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/rewards",     label: "Rewards" },
   { href: "/profile",     label: "Profile" },
 ];
 

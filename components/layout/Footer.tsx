@@ -22,7 +22,6 @@ export function Footer() {
             <Link href="/agent"       className="py-1 px-1 hover:text-text-primary transition-colors">AI Agent</Link>
             <Link href="/stats"       className="py-1 px-1 hover:text-text-primary transition-colors">Stats</Link>
             <Link href="/leaderboard" className="py-1 px-1 hover:text-text-primary transition-colors">Leaderboard</Link>
-            <Link href="/rewards"     className="py-1 px-1 hover:text-text-primary transition-colors">Rewards</Link>
             <a href="https://basescan.org" target="_blank" rel="noopener noreferrer"
                className="py-1 px-1 hover:text-text-primary transition-colors">Explorer ↗</a>
           </div>

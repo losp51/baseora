@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, Bot, Trophy, User, Gift } from "lucide-react";
+import { Zap, Bot, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/swap",        label: "Swap",   icon: Zap    },
   { href: "/agent",       label: "AI",     icon: Bot    },
   { href: "/leaderboard", label: "Ranks",  icon: Trophy },
-  { href: "/rewards",     label: "Rewards",icon: Gift   },
   { href: "/profile",     label: "Profile",icon: User   },
 ];
 
