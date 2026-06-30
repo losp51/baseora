@@ -186,7 +186,9 @@ export function BridgeCard() {
       let lastTx: `0x${string}` | null = null;
       for (const step of selectedRoute.steps) {
         // Use transactionRequest from route if available, otherwise fetch separately
-        let tx = (step as Record<string, unknown>).transactionRequest as Record<string, unknown> | undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stepAny = step as any;
+        let tx = stepAny.transactionRequest as Record<string, unknown> | undefined;
 
         if (!tx || !tx.to) {
           // Inject wallet address and fetch transaction data
@@ -194,8 +196,10 @@ export function BridgeCard() {
             ...step,
             action: { ...step.action, fromAddress: address },
           };
-          const populated = await getStepTransaction(getLifiClient(), stepWithAddress);
-          tx = populated.transactionRequest as Record<string, unknown> | undefined;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const populated = await getStepTransaction(getLifiClient(), stepWithAddress as any);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          tx = (populated as any).transactionRequest as Record<string, unknown> | undefined;
         }
 
         if (!tx || !tx.to) throw new Error("No transaction data returned");
