@@ -1,5 +1,5 @@
-import { createClient, getRoutes, executeRoute, getStatus } from "@lifi/sdk";
-import type { RoutesRequest, Route, StatusRequest } from "@lifi/sdk";
+import { createClient, getRoutes, getStatus } from "@lifi/sdk";
+import type { RoutesRequest, Route, GetStatusRequest } from "@lifi/sdk";
 
 // Allowed bridges — exclude known-risky bridges
 export const ALLOWED_BRIDGES = [

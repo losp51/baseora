@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getBridgeHistory, updateBridgeStatus, type BridgeRecord } from "@/lib/bridgeHistory";
+import { getBridgeHistory, updateBridgeStatus } from "@/lib/bridgeHistory";
+import type { BridgeRecord } from "@/types/bridge";
 import { fetchBridgeStatus } from "@/lib/lifi";
 import { getChain } from "@/lib/bridgeChains";
 import { ExternalLink, Clock, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
