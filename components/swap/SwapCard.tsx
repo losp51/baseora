@@ -359,9 +359,10 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
         className="mt-2 overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
         style={{
           maxHeight: (dexQuotes.length > 0 || quoteLoading) && sellAmount && parseFloat(sellAmount) > 0
-            ? "400px" : "0px",
+            ? "220px" : "0px",
           opacity: (dexQuotes.length > 0 || quoteLoading) && sellAmount && parseFloat(sellAmount) > 0
             ? 1 : 0,
+          overflowY: "auto",
         }}
       >
         <div className="space-y-2 pb-1">
